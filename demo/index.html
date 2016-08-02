@@ -1,0 +1,135 @@
+<!doctype html>
+<html>
+  <head>
+    <title>hot-autocomplete demo</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1, user-scalable=yes">
+    <script src="../../webcomponentsjs/webcomponents-lite.js"></script>
+
+    <link rel="import" href="../../iron-demo-helpers/demo-pages-shared-styles.html">
+    <link rel="import" href="../../iron-demo-helpers/demo-snippet.html">
+    <link rel="import" href="../../iron-ajax/iron-ajax.html">
+    <link rel="import" href="../../paper-input/paper-input.html">
+    <link rel="import" href="../hot-autocomplete.html">
+
+    <script src="../../sinonjs/sinon.js"></script>
+
+
+    <style is="custom-style" include="demo-pages-shared-styles">
+    </style>
+  </head>
+  <body>
+
+    <script>
+      sinon.log = function( m ){console.log("Message:", m)};
+
+
+      var server = sinon.fakeServer.create();
+      server.autoRespond = true;
+      server.autoRespondAfter = 500;
+
+      server.respondWith(
+        'GET',
+        '/suggest?name=', [
+          200,
+          'application/json',
+          '[{"name":"tony"},{"name":"tonia"}]'
+        ]
+      );
+
+      server.respondWith(
+        'GET',
+        '/suggest?name=t', [
+          200,
+          'application/json',
+          '[{"name":"tony"},{"name":"tonia"}]'
+        ]
+      );
+      server.respondWith(
+        'GET',
+        '/suggest?name=to', [
+          200,
+          'application/json',
+          '[{"name":"tony"},{"name":"tonia"}]'
+        ]
+      );
+
+      server.respondWith(
+        'GET',
+        '/suggest?name=ton', [
+          200,
+          'application/json',
+          '[{"name":"tony"},{"name":"tonia"}]'
+        ]
+      );
+
+      server.respondWith(
+        'GET',
+        '/suggest?name=tony', [
+          200,
+          'application/json',
+          '[{"name":"tony"}]'
+        ]
+      );
+
+      server.respondWith(
+        'GET',
+        '/suggest?name=toni', [
+          200,
+          'application/json',
+          '[{"name":"tonia"}]'
+        ]
+      );
+      server.respondWith(
+        'GET',
+        '/suggest?name=tonia', [
+          200,
+          'application/json',
+          '[{"name":"tonia"}]'
+        ]
+      );
+
+    </script>
+
+    <templater is="dom-bind">
+
+      <div class="vertical-section-container centered">
+        <h3>Basic demo, using built-in iron-ajax. <b>Type "tony"</b></h3>
+        <demo-snippet>
+          <template is="dom-bind">
+            <hot-autocomplete error-message="Not acceptable!" url="/suggest?name={{fieldName1}}">
+              <paper-input value="{{fieldName1}}" required id="name" name="name" label="Your name"></paper-input>
+            </hot-autocomplete>
+          </template>
+        </demo-snippet>
+      </div>
+
+      <div class="vertical-section-container centered">
+        <h3>Basic demo, using used-defined iron-ajax. <b>Type "tony"</b></h3>
+        <demo-snippet>
+          <template is="dom-bind">
+            <hot-autocomplete must-match iron-ajax-provided error-message="Not acceptable!">
+              <paper-input value="{{fieldName2}}" required id="name" name="name" label="Your name"></paper-input>
+              <iron-ajax url="/suggest?name={{fieldName2}}" method="get"></iron-ajax>
+            </hot-autocomplete>
+          </template>
+        </demo-snippet>
+      </div>
+
+      <div class="vertical-section-container centered">
+        <h3>Basic demo, using used-defined iron-ajax. <b>Type "tony"</b></h3>
+        <demo-snippet>
+          <template is="dom-bind">
+            <hot-autocomplete error-message="This is wrong! Wrong!" must-match iron-ajax-provided error-message="Not acceptable!">
+              <paper-input value="{{fieldName3}}" required id="name" name="name" label="Your name"></paper-input>
+              <iron-ajax url="/suggest?name={{fieldName3}}" method="get"></iron-ajax>
+            </hot-autocomplete>
+          </template>
+        </demo-snippet>
+      </div>
+
+
+    </templater>
+
+  </body>
+</html>
