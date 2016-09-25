@@ -7,7 +7,7 @@
     "iron-a11y-keys": "^1.0.6",
     "paper-listbox": "^1.1.2",
     "paper-item": "^1.2.1",
-    "hot-deep-target-behavior": "^0.1.1"
+    "hot-deep-target-behavior": "^0.2.0"
   },
   "devDependencies": {
     "iron-component-page": "PolymerElements/iron-component-page#^1.0.0",
