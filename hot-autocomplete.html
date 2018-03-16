@@ -3,7 +3,6 @@
 <link rel="import" href="../iron-ajax/iron-ajax.html">
 <link rel="import" href="../paper-listbox/paper-listbox.html">
 <link rel="import" href="../paper-item/paper-item.html">
-<link rel="import" href="../hot-deep-target-behavior/hot-deep-target-behavior.html">
 
 <!--
 Autocomplete widget
@@ -34,15 +33,6 @@ You can decide the path of the property by changing `suggestions-path`:
     </hot-autocomplete>
 
 Note that `suggestions-path` can be any value accepted by Polymer when doing `this.get()`.
-
-`hot-autocomplete` uses its own `iron-ajax` widget to make requests. However, you can decide to use your own, and make requests as complex as you like, by specifying `iron-ajax-provided`:
-
-    <hot-autocomplete iron-ajax-provided>
-      <paper-input value="{{fieldName}}" required id="name" name="name" label="Your name"></paper-input>
-      <iron-ajax url="/suggest?name={{fieldName}}" method="get"></iron-ajax>
-    </hot-autocomplete>
-
-The `iron-ajax` element can be anywhere within `hot-autocomplete`'s light DOM'.
 
 You can set it so that the input _must_ match at least one of the offered options; remember to provide an error message to invalidate the field with, in case something unacceptable is there:
 
@@ -78,7 +68,7 @@ You can set it so that the input _must_ match at least one of the offered option
     <iron-ajax id="request" on-response="_dataLoaderResponse" on-error="_dataLoaderError"></iron-ajax>
 
     <!-- The actual content distributed, from the light DOM -->
-    <content id="contentNode"></content>
+    <slot></slot>
     <paper-listbox on-iron-select="_selected" id="suggestionsList" hidden>
       <template is="dom-repeat" items="{{_suggestions}}">
         <paper-item>{{item}}</paper-item>
@@ -88,245 +78,228 @@ You can set it so that the input _must_ match at least one of the offered option
   </template>
 
   <script>
-    Polymer({
+/* global Polymer,customElements,Node */
+class HotAutoComplete extends Polymer.Element {
+  static get is () { return 'hot-autocomplete' }
 
-      is: 'hot-autocomplete',
+  static get properties () {
+    return {
 
-      properties: {
-
-        /**
-         * If set, then the autocomplete will use the first iron-ajax widget found in the
-         * light DOM. this is useful when you want to make a specific query, setting specific
-         * headers, etc. The stock iron-ajax will only have URL and METHOD set.
-         */
-        ironAjaxProvided: {
-          type: Boolean
-        },
-
-        /**
-         * If using the internal stock `iron-ajax` object, this will set `iron-ajax`'s method
-         * attribute
-         *
-         */
-        method: {
-          type: String,
-          value: 'get',
-          notify: true,
-        },
-
-        /**
-         * If using the internal stock `iron-ajax` object, this will set `iron-ajax`'s url
-         * attribute
-         */
-        url: {
-          type: String,
-          notify: true,
-        },
-
-        /**
-         * If set, then only values within the suggestions will be accepted.
-         */
-        mustMatch: {
-          type: Boolean,
-          notify: true,
-        },
-
-        /**
-         * The stock iron-ajax widget used to load data if `ironAjaxProvided` isn't set.
-         */
-        request: {
-          type: Object,
-          notify: true,
-        },
-
-        /**
-         * Message given in case of error AND no error message is
-         * returned by the AJAX call (e.g. timeouts, etc.)
-         */
-        errorMessage: {
-          type: String,
-          value: "Error!"
-        },
-
-        _field: {
-          type: Object
-        },
-
-        _suggestions: {
-          type: Array,
-          value: [],
-        },
-
-        /**
-         * If an array of objects is returned by the AJAX call, the path is used to find the
-         * path (within the returned objects) of the attribute that will be used for autocompletion
-         */
-        suggestionsPath: {
-          type: String,
-          value: 'name'
-        },
-
-        /**
-         * The node with the suggestion list
-         */
-        _suggestionsList: {
-          type: Object
-        },
+      /**
+       * If using the internal stock `iron-ajax` object, this will set `iron-ajax`'s method
+       * attribute
+       *
+       */
+      method: {
+        type: String,
+        value: 'get',
+        notify: true
       },
 
-      _selected: function() {
-        this._hideSuggestions();
-        this.selectingSuggestion = false;
-        this._field.set('value', this._suggestions[this._suggestionsList.selected]);
-        this.validateField();
-        this._suggestionsList.select(-1);
-        this._field.inputElement.focus();
-        this._field.inputElement.setSelectionRange(this._field.value.length, this._field.value.length);
+      /**
+       * If using the internal stock `iron-ajax` object, this will set `iron-ajax`'s url
+       * attribute
+       */
+      url: {
+        type: String,
+        notify: true
       },
 
-      _a11ySubmitInputDown: function(e) {
-        this.selectingSuggestion = true;
-        if (this._suggestions.length > 1) {
-          this._suggestionsList.focus();
-        } else {
-          this._hideSuggestions();
-        }
-      },
-      _a11ySubmitEscape: function() {
-        this.selectingSuggestion = false;
-        this._hideSuggestions();
-        this.validateField();
-        this._field.inputElement.focus();
+      /**
+       * If set, then only values within the suggestions will be accepted.
+       */
+      mustMatch: {
+        type: Boolean,
+        notify: true
       },
 
-      validateField: function() {
-        if (this.mustMatch) {
-          if (!this._suggestions || !this._suggestions.length || this._suggestions.indexOf(this._field.value) === -1) {
-            this._field.errorMessage = this.errorMessage;
-            this._field.invalid = true;
-          } else {
-            this._field.invalid = false;
-          }
-        } else {
-          this._field.invalid = false;
-        }
+      /**
+       * The stock iron-ajax widget used to load data.
+       */
+      request: {
+        type: Object,
+        notify: true
       },
 
-      attached: function() {
-
-        // The request object will depend on the iron-ajax-provided attribute.
-        // If using a provided iron-ajax element, listeners will be set
-        // manually so that responses are caught.
-        // Otherwise, the internal request object will be used. The internal one
-        // will use hot-autocomplete's `url` and `method` on each request.
-        if (this.ironAjaxProvided) {
-          this.request = this.queryEffectiveChildrenDeep("iron-ajax", true, 'hot-autocomplete');
-          this.listen(this.request, "response", '_dataLoaderResponse');
-          this.listen(this.request, "error", '_dataLoaderError');
-        } else {
-          // Sets the 'request' attribute
-          this.request = this.$.request;
-        }
-
-        this.listen(this._field, 'input', "_inputReceived");
-        this.listen(this._field, 'input', "validateField");
+      /**
+       * Message given in case of error AND no error message is
+       * returned by the AJAX call (e.g. timeouts, etc.)
+       */
+      errorMessage: {
+        type: String,
+        value: 'Error!'
       },
 
-      detached: function() {
-        if (this.ironAjaxProvided) {
-          this.unlisten(this.request, "response", '_dataLoaderResponse');
-          this.unlisten(this.request, "error", '_dataLoaderError');
-        }
-
-        this.unlisten(this._field, 'input', "_inputReceived");
+      _field: {
+        type: Object
       },
 
-      ready: function() {
-
-        // Sets the form
-        this._field = this.getEffectiveChildren()[0];
-        this._suggestionsList = this.$.suggestionsList;
+      _suggestions: {
+        type: Array,
+        value: []
       },
 
-      _inputReceived: function(e) {
-
-        // If using the internal one, it will set the request depending
-        // on the url/method passed to the hot-autocomplete widget
-        if (!this.ironAjaxProvided) {
-          this.request.url = this.url;
-          this.request.handleAs = 'json';
-          this.request.method = this.method;
-        }
-
-        // Amazing, having to do this in 2016. Really.
-        // First regexp inspired by iron-request
-        function encodeBit(str) {
-          if (str === null) return '';
-          return encodeURIComponent(str.toString().replace(/\r?\n/g, '\r\n')).replace(/%20/g, '+');
-        }
-
-        // The body will always be set to what the user is looking for
-        this.request.body = encodeBit(this._field.getAttribute('name')) + '=' + encodeBit(this._field.value);
-
-        // This will generate the request, which will cause either
-        // `_dataLoaderResponse` or `_dataLoaderError` to be called.
-
-        // This is async to give decorating widgets a chance to listen to events
-        // before firing
-        this.async(function() {
-          this.request.generateRequest();
-        })
+      /**
+       * If an array of objects is returned by the AJAX call, the path is used to find the
+       * path (within the returned objects) of the attribute that will be used for autocompletion
+       */
+      suggestionsPath: {
+        type: String,
+        value: 'name'
       },
 
-      _hideSuggestions: function() {
-        this._suggestionsList.setAttribute('hidden', true);
-        this.selectingSuggestion = false;
-      },
+      /**
+       * The node with the suggestion list
+       */
+      _suggestionsList: {
+        type: Object
+      }
+    }
+  }
 
-      _showSuggestions: function() {
-        if (this._suggestions.length > 1) {
-          this._suggestionsList.removeAttribute('hidden', false);
-        } else {
-          this._suggestionsList.setAttribute('hidden', true);
-        }
-      },
+  _selected () {
+    this._hideSuggestions()
+    this.selectingSuggestion = false
+    this._field.set('value', this._suggestions[this._suggestionsList.selected])
+    this.validateField()
+    this._suggestionsList.select(-1)
+    this._field.inputElement.focus()
+    this._field.inputElement.setSelectionRange(this._field.value.length, this._field.value.length)
+  }
 
-      _dataLoaderResponse: function(e) {
+  _a11ySubmitInputDown (e) {
+    this.selectingSuggestion = true
+    if (this._suggestions.length > 1) {
+      this._suggestionsList.focus()
+    } else {
+      this._hideSuggestions()
+    }
+  }
+  _a11ySubmitEscape () {
+    this.selectingSuggestion = false
+    this._hideSuggestions()
+    this.validateField()
+    this._field.inputElement.focus()
+  }
 
-        // Only consider the last made request
-        if (e.detail != this.request.lastRequest) return;
+  validateField () {
+    if (this.mustMatch) {
+      if (!this._suggestions || !this._suggestions.length || this._suggestions.indexOf(this._field.value) === -1) {
+        this._field.errorMessage = this.errorMessage
+        this._field.invalid = true
+      } else {
+        this._field.invalid = false
+      }
+    } else {
+      this._field.invalid = false
+    }
+  }
 
-        // Get the response
-        var response = e.detail.response;
+  constructor () {
+    super()
 
-        if (!Array.isArray(response) || response.length == 0) return;
+    this._inputReceivedBound = this._inputReceived.bind(this)
+    this.validateFieldBound = this.validateField.bind(this)
+  }
 
-        var t = this;
-        this._suggestions = response.map(
-          function(i) {
-            return t.get(t.suggestionsPath, i);
-          })
-        this._showSuggestions();
-        if (this._suggestions.length) {
+  connectedCallback () {
+    super.connectedCallback()
 
-          var firstSuggestion = this._suggestions[0];
-          var value = this._field.value;
-          var spot = firstSuggestion.indexOf(value);
-          if (firstSuggestion.indexOf(value) === 0) {
-            //var firstSuggestionTail = firstSuggestion.substr( value.length );
-            this._field.value = firstSuggestion;
-            this._field.inputElement.setSelectionRange(value.length, firstSuggestion.length);
-          }
-          this._field.inputElement
-        }
-      },
+    this.request = this.$.request
+    this._field.addEventListener('input', this._inputReceivedBound)
+    this._field.addEventListener('input', this.validateFieldBound)
+  }
 
-      _dataLoaderError: function(e) {
-        this.selectingSuggestion = false;
-        this._hideSuggestions();
-        this.validateField();
-      },
+  disconnectedCallback () {
+    super.disconnectedCallback()
 
-    });
+    this._field.removeEventListener('input', this._inputReceivedBound)
+    this._field.removeEventListener('input', this.validateFieldBound)
+  }
+
+  ready () {
+    super.ready()
+
+    // Sets the form
+    this._field = Polymer.FlattenedNodesObserver.getFlattenedNodes(this).find(el => el.nodeType === Node.ELEMENT_NODE)
+    this._suggestionsList = this.$.suggestionsList
+  }
+
+  _inputReceived (e) {
+    // Don't show list on an empty value
+    if (this._field.value === '') {
+      this._hideSuggestions()
+      return
+    }
+    // If using the internal one, it will set the request depending
+    // on the url/method passed to the hot-autocomplete widget
+    this.request.url = this.url
+    this.request.handleAs = 'json'
+    this.request.method = this.method
+
+    // Amazing, having to do this in 2016. Really.
+    // First regexp inspired by iron-request
+    function encodeBit (str) {
+      if (str === null) return ''
+      return encodeURIComponent(str.toString().replace(/\r?\n/g, '\r\n')).replace(/%20/g, '+')
+    }
+
+    // The body will always be set to what the user is looking for
+    this.request.body = encodeBit(this._field.getAttribute('name')) + '=' + encodeBit(this._field.value)
+
+    // This will generate the request, which will cause either
+    // `_dataLoaderResponse` or `_dataLoaderError` to be called.
+
+    // This is async to give decorating widgets a chance to listen to events
+    // before firing
+    setTimeout(() => { this.request.generateRequest() })
+  }
+
+  _hideSuggestions () {
+    this._suggestionsList.setAttribute('hidden', true)
+    this.selectingSuggestion = false
+  }
+
+  _showSuggestions () {
+    if (this._suggestions.length > 1) {
+      this._suggestionsList.removeAttribute('hidden', false)
+    } else {
+      this._suggestionsList.setAttribute('hidden', true)
+    }
+  }
+
+  _dataLoaderResponse (e) {
+    // Only consider the last made request
+    if (e.detail !== this.request.lastRequest) return
+
+    // Get the response
+    var response = e.detail.response
+
+    if (!Array.isArray(response) || response.length === 0) return
+
+    var t = this
+    this._suggestions = response.map(
+      function (i) {
+        return t.get(t.suggestionsPath, i)
+      })
+    this._showSuggestions()
+    if (this._suggestions.length) {
+      var firstSuggestion = this._suggestions[0]
+      var value = this._field.value
+      if (firstSuggestion.indexOf(value) === 0) {
+        // var firstSuggestionTail = firstSuggestion.substr( value.length );
+        this._field.value = firstSuggestion
+        this._field.inputElement._inputElement.setSelectionRange(value.length, firstSuggestion.length)
+      }
+    }
+  }
+
+  _dataLoaderError (e) {
+    this.selectingSuggestion = false
+    this._hideSuggestions()
+    this.validateField()
+  }
+}
+customElements.define(HotAutoComplete.is, HotAutoComplete)
   </script>
 </dom-module>
