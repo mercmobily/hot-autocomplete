@@ -40,6 +40,15 @@ You can set it so that the input _must_ match at least one of the offered option
       <paper-input value="{{fieldName}}" required id="name" name="name" label="Your name"></paper-input>
     </hot-autocomplete>
 
+Note that there is a `picked` property that will point to the picked element. So, in a form you can submit it using a hidden field like this:
+
+    <hot-autocomplete picked="{{pickedCountry}}" suggestions-path="name" url="/stores/countries?nameStartsWith={{countryName}}" method="get">
+      <paper-input vname="country" value="{{countryName}}" required id="countryName" label="Country"></paper-input>
+    </hot-autocomplete>
+    <input type="hidden" name="countryId" value="{{pickedCountry.id}}">
+    Country code: {{pickedCountry.id}}
+
+
 @demo demo/index.html
 -->
 
@@ -71,7 +80,7 @@ You can set it so that the input _must_ match at least one of the offered option
     <slot></slot>
     <paper-listbox on-iron-select="_selected" id="suggestionsList" hidden>
       <template is="dom-repeat" items="{{_suggestions}}">
-        <paper-item>{{item}}</paper-item>
+        <paper-item>{{item.value}}</paper-item>
       </template>
     </paper-listbox>
 
@@ -149,6 +158,15 @@ class HotAutoComplete extends Polymer.Element {
       },
 
       /**
+       * Picked object. It's the value of the last picked item, if the search only returned one element
+       */
+      picked: {
+        type: Object,
+        value: {},
+        notify: true
+      },
+
+      /**
        * The node with the suggestion list
        */
       _suggestionsList: {
@@ -160,11 +178,13 @@ class HotAutoComplete extends Polymer.Element {
   _selected () {
     this._hideSuggestions()
     this.selectingSuggestion = false
-    this._field.set('value', this._suggestions[this._suggestionsList.selected])
+    var selected = this._suggestions[this._suggestionsList.selected]
+    this._field.set('value', selected.value)
+    this.picked = selected.item
     this.validateField()
     this._suggestionsList.select(-1)
-    this._field.inputElement.focus()
-    this._field.inputElement.setSelectionRange(this._field.value.length, this._field.value.length)
+    this._field.inputElement._inputElement.focus()
+    this._field.inputElement._inputElement.setSelectionRange(this._field.value.length, this._field.value.length)
   }
 
   _a11ySubmitInputDown (e) {
@@ -184,7 +204,8 @@ class HotAutoComplete extends Polymer.Element {
 
   validateField () {
     if (this.mustMatch) {
-      if (!this._suggestions || !this._suggestions.length || this._suggestions.indexOf(this._field.value) === -1) {
+      // if (!this._suggestions || !this._suggestions.length || this._suggestions.indexOf(this._field.value) === -1) {
+      if (!this._suggestions || !this._suggestions.length || !this._suggestions.find((o) => o.value === this._field.value)) {
         this._field.errorMessage = this.errorMessage
         this._field.invalid = true
       } else {
@@ -226,6 +247,8 @@ class HotAutoComplete extends Polymer.Element {
   }
 
   _inputReceived (e) {
+    this.picked = {}
+
     // Don't show list on an empty value
     if (this._field.value === '') {
       this._hideSuggestions()
@@ -279,14 +302,18 @@ class HotAutoComplete extends Polymer.Element {
 
     var t = this
     this._suggestions = response.map(
-      function (i) {
-        return t.get(t.suggestionsPath, i)
+      function (record) {
+        return { value: t.get(t.suggestionsPath, record), item: record }
       })
     this._showSuggestions()
     if (this._suggestions.length) {
-      var firstSuggestion = this._suggestions[0]
+      var firstSuggestion = this._suggestions[0].value
+
+      if (response.length === 1) this.picked = response[0]
+      else this.picked = {}
+
       var value = this._field.value
-      if (firstSuggestion.indexOf(value) === 0) {
+      if (firstSuggestion.toUpperCase().indexOf(value.toUpperCase()) === 0) {
         // var firstSuggestionTail = firstSuggestion.substr( value.length );
         this._field.value = firstSuggestion
         this._field.inputElement._inputElement.setSelectionRange(value.length, firstSuggestion.length)

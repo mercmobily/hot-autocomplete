@@ -27,18 +27,18 @@ You can decide the path of the property by changing `suggestions-path`:
 
 Note that `suggestions-path` can be any value accepted by Polymer when doing `this.get()`.
 
-`hot-autocomplete` uses its own `iron-ajax` widget to make requests. However, you can decide to use your own, and make requests as complex as you like, by specifying `iron-ajax-provided`:
-
-    <hot-autocomplete iron-ajax-provided>
-      <paper-input value="{{fieldName}}" required id="name" name="name" label="Your name"></paper-input>
-      <iron-ajax url="/suggest?name={{fieldName}}" method="get"></iron-ajax>
-    </hot-autocomplete>
-
-The `iron-ajax` element can be anywhere within `hot-autocomplete`'s light DOM'.
-
 You can set it so that the input _must_ match at least one of the offered options; remember to provide an error message to invalidate the field with, in case something unacceptable is there:
 
     <hot-autocomplete must-match error-message="Not a valid choice!" url="/suggest?name={{fieldName}}" method="get">
       <paper-input value="{{fieldName}}" required id="name" name="name" label="Your name"></paper-input>
     </hot-autocomplete>
+
+Note that there is a `picked` property that will point to the picked element. So, in a form you can submit it using a hidden field like this:
+
+    <hot-autocomplete picked="{{pickedCountry}}" suggestions-path="name" url="/stores/countries?nameStartsWith={{countryName}}" method="get">
+      <paper-input vname="country" value="{{countryName}}" required id="countryName" label="Country"></paper-input>
+    </hot-autocomplete>
+    <input type="hidden" name="countryId" value="{{pickedCountry.id}}">
+    Country code: {{pickedCountry.id}}
+
 
