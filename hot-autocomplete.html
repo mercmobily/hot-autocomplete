@@ -70,8 +70,8 @@ Note that there is a `picked` property that will point to the picked element. So
       }
     </style>
     <iron-a11y-keys id="a11y1" keys="down" target="[[_field]]" on-keys-pressed="_a11ySubmitInputDown"></iron-a11y-keys>
-    <iron-a11y-keys id="a11y1" keys="esc tab shift+tab" target="[[_field]]" on-keys-pressed="_a11ySubmitEscape"></iron-a11y-keys>
-    <iron-a11y-keys id="a11y2" keys="esc tab shift+tab" target="[[_suggestionsList]]" on-keys-pressed="_a11ySubmitEscape"></iron-a11y-keys>
+    <iron-a11y-keys id="a11y2" keys="esc tab shift+tab" target="[[_field]]" on-keys-pressed="_a11ySubmitEscape"></iron-a11y-keys>
+    <iron-a11y-keys id="a11y3" keys="esc tab shift+tab" target="[[_suggestionsList]]" on-keys-pressed="_a11ySubmitEscape"></iron-a11y-keys>
 
     <!-- The data loader, used to load recordId if required-->
     <iron-ajax id="request" on-response="_dataLoaderResponse" on-error="_dataLoaderError"></iron-ajax>
@@ -229,6 +229,8 @@ class HotAutoComplete extends Polymer.Element {
     this.request = this.$.request
     this._field.addEventListener('input', this._inputReceivedBound)
     this._field.addEventListener('input', this.validateFieldBound)
+    this._field.addEventListener('value-changed', this._inputReceivedBound)
+    this._field.addEventListener('value-changed', this.validateFieldBound)
   }
 
   disconnectedCallback () {
@@ -236,6 +238,8 @@ class HotAutoComplete extends Polymer.Element {
 
     this._field.removeEventListener('input', this._inputReceivedBound)
     this._field.removeEventListener('input', this.validateFieldBound)
+    this._field.removeEventListener('value-changed', this._inputReceivedBound)
+    this._field.removeEventListener('value-changed', this.validateFieldBound)
   }
 
   ready () {
@@ -247,13 +251,18 @@ class HotAutoComplete extends Polymer.Element {
   }
 
   _inputReceived (e) {
+    if (this.disableInputReceived) return
+
     this.picked = {}
 
     // Don't show list on an empty value
-    if (this._field.value === '') {
+    if (this._field.value.toString() === '') {
       this._hideSuggestions()
       return
     }
+
+    if( e.type === 'value-changed') return
+
     // If using the internal one, it will set the request depending
     // on the url/method passed to the hot-autocomplete widget
     this.request.url = this.url
@@ -263,7 +272,7 @@ class HotAutoComplete extends Polymer.Element {
     // Amazing, having to do this in 2016. Really.
     // First regexp inspired by iron-request
     function encodeBit (str) {
-      if (str === null) return ''
+      if (!str) return ''
       return encodeURIComponent(str.toString().replace(/\r?\n/g, '\r\n')).replace(/%20/g, '+')
     }
 
@@ -309,13 +318,17 @@ class HotAutoComplete extends Polymer.Element {
     if (this._suggestions.length) {
       var firstSuggestion = this._suggestions[0].value
 
-      if (response.length === 1) this.picked = response[0]
-      else this.picked = {}
+      this.picked = response[0]
+      //if (response.length === 1) this.picked = response[0]
+      //else this.picked = {}
 
       var value = this._field.value
       if (firstSuggestion.toUpperCase().indexOf(value.toUpperCase()) === 0) {
         // var firstSuggestionTail = firstSuggestion.substr( value.length );
+        this.disableInputReceived = true
         this._field.value = firstSuggestion
+        this.disableInputReceived = false
+
         this._field.inputElement._inputElement.setSelectionRange(value.length, firstSuggestion.length)
       }
     }
