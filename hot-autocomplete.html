@@ -261,7 +261,8 @@ class HotAutoComplete extends Polymer.Element {
       return
     }
 
-    if( e.type === 'value-changed') return
+    // A new request must only happen for input, not value-changed
+    if (e.type === 'value-changed') return
 
     // If using the internal one, it will set the request depending
     // on the url/method passed to the hot-autocomplete widget
@@ -319,8 +320,8 @@ class HotAutoComplete extends Polymer.Element {
       var firstSuggestion = this._suggestions[0].value
 
       this.picked = response[0]
-      //if (response.length === 1) this.picked = response[0]
-      //else this.picked = {}
+      // if (response.length === 1) this.picked = response[0]
+      // else this.picked = {}
 
       var value = this._field.value
       if (firstSuggestion.toUpperCase().indexOf(value.toUpperCase()) === 0) {
