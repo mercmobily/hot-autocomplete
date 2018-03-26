@@ -203,8 +203,8 @@ class HotAutoComplete extends Polymer.Element {
   }
 
   validateField () {
+    // if (!this._suggestions || !this._suggestions.length || this._suggestions.indexOf(this._field.value) === -1) {
     if (this.mustMatch) {
-      // if (!this._suggestions || !this._suggestions.length || this._suggestions.indexOf(this._field.value) === -1) {
       if (!this._suggestions || !this._suggestions.length || !this._suggestions.find((o) => o.value === this._field.value)) {
         this._field.errorMessage = this.errorMessage
         this._field.invalid = true
@@ -252,12 +252,11 @@ class HotAutoComplete extends Polymer.Element {
 
   _inputReceived (e) {
     if (this.disableInputReceived) return
+    // Don't show list on an empty value, and clear up the field
 
-    this.picked = {}
-
-    // Don't show list on an empty value
-    if (this._field.value.toString() === '') {
+    if (!this._field.value || !this._field.value.toString || this._field.value.toString() === '') {
       this._hideSuggestions()
+      this.picked = {}
       return
     }
 
