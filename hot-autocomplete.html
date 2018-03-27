@@ -189,7 +189,7 @@ class HotAutoComplete extends Polymer.Element {
 
   _a11ySubmitInputDown (e) {
     this.selectingSuggestion = true
-    if (this._suggestions.length > 1) {
+    if (this._suggestions.length > 0) {
       this._suggestionsList.focus()
     } else {
       this._hideSuggestions()
@@ -293,7 +293,7 @@ class HotAutoComplete extends Polymer.Element {
   }
 
   _showSuggestions () {
-    if (this._suggestions.length > 1) {
+    if (this._suggestions.length > 0) {
       this._suggestionsList.removeAttribute('hidden', false)
     } else {
       this._suggestionsList.setAttribute('hidden', true)
@@ -318,12 +318,14 @@ class HotAutoComplete extends Polymer.Element {
     if (this._suggestions.length) {
       var firstSuggestion = this._suggestions[0].value
 
-      this.picked = response[0]
+      // this.picked = response[0]
       // if (response.length === 1) this.picked = response[0]
       // else this.picked = {}
 
       var value = this._field.value
-      if (firstSuggestion.toUpperCase().indexOf(value.toUpperCase()) === 0) {
+      if (value.length && firstSuggestion && firstSuggestion.toUpperCase && firstSuggestion.toUpperCase().indexOf(value.toUpperCase()) === 0) {
+        // THe rest of the writing matches: set it as picked, and set the value, straight away
+        this.picked = response[0]
         // var firstSuggestionTail = firstSuggestion.substr( value.length );
         this.disableInputReceived = true
         this._field.value = firstSuggestion
