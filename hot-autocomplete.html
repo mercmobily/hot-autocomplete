@@ -136,7 +136,7 @@ class HotAutoComplete extends Polymer.Element {
        */
       errorMessage: {
         type: String,
-        value: 'Error!'
+        value: 'Lookup error'
       },
 
       _field: {
@@ -204,8 +204,8 @@ class HotAutoComplete extends Polymer.Element {
 
   validateField () {
     // if (!this._suggestions || !this._suggestions.length || this._suggestions.indexOf(this._field.value) === -1) {
-    if (this.mustMatch) {
-      if (!this._suggestions || !this._suggestions.length || !this._suggestions.find((o) => o.value === this._field.value)) {
+    if (this.mustMatch && this._field.value) {
+      if (!this._suggestions) { // || !this._suggestions.length) {  || !this._suggestions.find((o) => o.value === this._field.value)) {
         this._field.errorMessage = this.errorMessage
         this._field.invalid = true
       } else {
@@ -293,7 +293,7 @@ class HotAutoComplete extends Polymer.Element {
   }
 
   _showSuggestions () {
-    if (this._suggestions.length > 0) {
+    if (this._suggestions.length > 0 && this._field.value) {
       this._suggestionsList.removeAttribute('hidden', false)
     } else {
       this._suggestionsList.setAttribute('hidden', true)
