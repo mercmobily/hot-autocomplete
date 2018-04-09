@@ -134,10 +134,12 @@ class HotAutoComplete extends Polymer.Element {
        * Message given in case of error AND no error message is
        * returned by the AJAX call (e.g. timeouts, etc.)
        */
+      /*
       errorMessage: {
         type: String,
         value: 'Lookup error'
       },
+      */
 
       _field: {
         type: Object
@@ -175,47 +177,6 @@ class HotAutoComplete extends Polymer.Element {
     }
   }
 
-  _selected () {
-    this._hideSuggestions()
-    this.selectingSuggestion = false
-    var selected = this._suggestions[this._suggestionsList.selected]
-    this._field.set('value', selected.value)
-    this.picked = selected.item
-    this.validateField()
-    this._suggestionsList.select(-1)
-    this._field.inputElement._inputElement.focus()
-    this._field.inputElement._inputElement.setSelectionRange(this._field.value.length, this._field.value.length)
-  }
-
-  _a11ySubmitInputDown (e) {
-    this.selectingSuggestion = true
-    if (this._suggestions.length > 0) {
-      this._suggestionsList.focus()
-    } else {
-      this._hideSuggestions()
-    }
-  }
-  _a11ySubmitEscape () {
-    this.selectingSuggestion = false
-    this._hideSuggestions()
-    this.validateField()
-    this._field.inputElement.focus()
-  }
-
-  validateField () {
-    // if (!this._suggestions || !this._suggestions.length || this._suggestions.indexOf(this._field.value) === -1) {
-    if (this.mustMatch && this._field.value) {
-      if (!this._suggestions) { // || !this._suggestions.length) {  || !this._suggestions.find((o) => o.value === this._field.value)) {
-        this._field.errorMessage = this.errorMessage
-        this._field.invalid = true
-      } else {
-        this._field.invalid = false
-      }
-    } else {
-      this._field.invalid = false
-    }
-  }
-
   constructor () {
     super()
 
@@ -250,10 +211,51 @@ class HotAutoComplete extends Polymer.Element {
     this._suggestionsList = this.$.suggestionsList
   }
 
+  _a11ySubmitInputDown (e) {
+    this.selectingSuggestion = true
+    if (this._suggestions.length > 0) {
+      this._suggestionsList.focus()
+    } else {
+      this._hideSuggestions()
+    }
+  }
+  _a11ySubmitEscape () {
+    this.selectingSuggestion = false
+    this._hideSuggestions()
+    this.validateField()
+    this._field.inputElement.focus()
+  }
+
+  _selected (e) {
+    this._hideSuggestions()
+    this.selectingSuggestion = false
+    var selected = this._suggestions[this._suggestionsList.selected]
+    this._field.set('value', selected.value)
+    this.picked = selected.item
+    this.validateField()
+    this._suggestionsList.select(-1)
+    this._field.inputElement._inputElement.focus()
+    this._field.inputElement._inputElement.setSelectionRange(this._field.value.length, this._field.value.length)
+  }
+
+  validateField () {
+    // if (!this._suggestions || !this._suggestions.length || this._suggestions.indexOf(this._field.value) === -1) {
+    if (this.mustMatch && this._field.value) {
+      if (!this._suggestions) { // || !this._suggestions.length) {  || !this._suggestions.find((o) => o.value === this._field.value)) {
+        // this._field.errorMessage = this.errorMessage
+        this._field.invalid = true
+      } else {
+        this._field.invalid = false
+      }
+    } else {
+      this._field.invalid = false
+    }
+  }
+
   _inputReceived (e) {
     if (this.disableInputReceived) return
-    // Don't show list on an empty value, and clear up the field
 
+    // Don't show list on an empty value, and clear up the field
     if (!this._field.value || !this._field.value.toString || this._field.value.toString() === '') {
       this._hideSuggestions()
       this.picked = {}
@@ -263,8 +265,7 @@ class HotAutoComplete extends Polymer.Element {
     // A new request must only happen for input, not value-changed
     if (e.type === 'value-changed') return
 
-    // If using the internal one, it will set the request depending
-    // on the url/method passed to the hot-autocomplete widget
+    // Set the request depending on the url/method passed to the hot-autocomplete widget
     this.request.url = this.url
     this.request.handleAs = 'json'
     this.request.method = this.method
@@ -282,8 +283,7 @@ class HotAutoComplete extends Polymer.Element {
     // This will generate the request, which will cause either
     // `_dataLoaderResponse` or `_dataLoaderError` to be called.
 
-    // This is async to give decorating widgets a chance to listen to events
-    // before firing
+    // TODO: See if setTimeout is still neeed here
     setTimeout(() => { this.request.generateRequest() })
   }
 
@@ -301,13 +301,17 @@ class HotAutoComplete extends Polymer.Element {
   }
 
   _dataLoaderResponse (e) {
+    debugger
     // Only consider the last made request
     if (e.detail !== this.request.lastRequest) return
 
     // Get the response
     var response = e.detail.response
 
-    if (!Array.isArray(response) || response.length === 0) return
+    if (!Array.isArray(response) || response.length === 0) {
+      this.picked = {}
+      return
+    }
 
     var t = this
     this._suggestions = response.map(
