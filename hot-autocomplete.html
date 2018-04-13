@@ -235,7 +235,9 @@ class HotAutoComplete extends Polymer.Element {
     this.validateField()
     this._suggestionsList.select(-1)
     this._field.inputElement._inputElement.focus()
-    this._field.inputElement._inputElement.setSelectionRange(this._field.value.length, this._field.value.length)
+    if (typeof this._field.value !== 'undefined') {
+      this._field.inputElement._inputElement.setSelectionRange(this._field.value.length, this._field.value.length)
+    }
   }
 
   validateField () {
