@@ -115,7 +115,8 @@ class HotAutoComplete extends Polymer.Element {
        */
       url: {
         type: String,
-        notify: true
+        notify: true,
+        observer: '_urlChanged'
       },
 
       /**
@@ -230,6 +231,11 @@ class HotAutoComplete extends Polymer.Element {
     this._field.inputElement.focus()
   }
 
+  _urlChanged (url){
+    if (this.disableInputReceived) return
+    this.picked = {}
+  }
+
   _selected (e) {
     this._hideSuggestions()
     this.selectingSuggestion = false
@@ -330,7 +336,6 @@ class HotAutoComplete extends Polymer.Element {
       // this.picked = response[0]
       // if (response.length === 1) this.picked = response[0]
       // else this.picked = {}
-
       var value = this._field.value
       if (value.length && firstSuggestion && firstSuggestion.toUpperCase && firstSuggestion.toUpperCase().indexOf(value.toUpperCase()) === 0) {
         // THe rest of the writing matches: set it as picked, and set the value, straight away
